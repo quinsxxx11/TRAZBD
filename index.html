@@ -1,0 +1,529 @@
+﻿<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Habit Tracker</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="assets/styles.css">
+    <style>
+        /* Дополнительные стили для новых видов карточек */
+        .today-check-row { display: flex; justify-content: flex-end; margin-top: 10px; }
+        .check-btn { width: 38px; height: 38px; border-radius: 50%; border: 2px solid #e9ecef; background: white; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 18px; color: transparent; transition: 0.2s; }
+        .check-btn:hover { border-color: #8b5cf6; }
+        .check-btn.checked { background: #8b5cf6; border-color: #8b5cf6; color: white; }
+
+        .week-grid { display: flex; justify-content: space-between; gap: 4px; margin-top: 15px; }
+        .day-col { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+        .day-label { font-size: 10px; font-weight: 700; color: #6c757d; }
+        .day-btn { width: 32px; height: 32px; border-radius: 50%; border: 1px solid #e9ecef; background: #f8f9fa; color: #6c757d; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; transition: 0.2s; }
+        .day-btn:hover { border-color: #8b5cf6; color: #8b5cf6; }
+        .day-btn.done { background: #8b5cf6; color: white; border-color: #8b5cf6; }
+    </style>
+</head>
+<body>
+    
+    <!-- ЭКРАН АВТОРИЗАЦИИ -->
+    <div id="auth-screen" class="auth-wrapper">
+        <div class="auth-card">
+            <h1 style="text-align: center; margin-bottom: 5px;">Habit Tracker</h1>
+            <p style="text-align: center; color: #6c757d; margin-bottom: 25px; font-size: 14px;">Войдите, чтобы продолжить</p>
+            
+            <div class="auth-tabs">
+                <div class="auth-tab active" id="tab-login">Вход</div>
+                <div class="auth-tab" id="tab-register">Регистрация</div>
+            </div>
+
+            <div id="login-form-box">
+                <div class="input-group"><input type="text" id="login-username" placeholder="Логин"></div>
+                <div class="input-group"><input type="password" id="login-password" placeholder="Пароль"></div>
+                <button class="btn-save" id="btn-login" style="width: 100%; margin-top: 10px;">Войти</button>
+            </div>
+
+            <div id="register-form-box" style="display: none;">
+                <div class="input-group"><input type="text" id="reg-username" placeholder="Придумайте логин"></div>
+                <div class="input-group"><input type="password" id="reg-password" placeholder="Придумайте пароль"></div>
+                <button class="btn-save" id="btn-register" style="width: 100%; margin-top: 10px;">Зарегистрироваться</button>
+            </div>
+            <p id="auth-error" style="color: #dc3545; text-align: center; margin-top: 15px; font-size: 14px; display: none;"></p>
+        </div>
+    </div>
+
+    <!-- ОСНОВНОЙ САЙТ -->
+    <div id="main-app" class="app-container" style="display: none;">
+        <header>
+            <div>
+                <h1>Habit Tracker</h1>
+                <p class="subtitle">Привет, <span id="user-display-name" style="font-weight: 600; color: #8b5cf6;">User</span>!</p>
+            </div>
+            <button id="btn-settings" class="icon-btn" title="Настройки">⚙️</button>
+        </header>
+
+        <!-- ВЕРХНИЕ ТАБЫ -->
+        <div class="tabs">
+            <div class="tab active" data-time="today">Сегодня</div>
+            <div class="tab" data-time="weekly">Еженедельно</div>
+            <div class="tab" data-time="monthly">Ежемесячно</div>
+        </div>
+
+        <main id="view-habits" class="view-section active">
+            <h2 style="margin-bottom: 20px; font-size: 20px;">Мои привычки</h2>
+            <div id="habits-list" class="habits-list"></div>
+        </main>
+
+        <main id="view-calendar" class="view-section">
+            <h2 style="margin-bottom: 20px; font-size: 20px;">Календарь</h2>
+            <div class="panel calendar-panel">
+                <div class="calendar-header">
+                    <button id="prev-month" class="cal-nav-btn">←</button>
+                    <h3 id="month-year-display">Месяц Год</h3>
+                    <button id="next-month" class="cal-nav-btn">→</button>
+                </div>
+                <div class="calendar-weekdays">
+                    <span>Пн</span><span>Вт</span><span>Ср</span><span>Чт</span><span>Пт</span><span>Сб</span><span>Вс</span>
+                </div>
+                <div id="calendar-grid" class="calendar-grid"></div>
+            </div>
+            <div class="panel day-details-panel">
+                <h3 id="selected-date-title" style="margin-bottom: 15px; font-size: 16px;">Выберите дату</h3>
+                <div id="day-habits-list" class="day-habits-list"></div>
+            </div>
+        </main>
+
+        <main id="view-stats" class="view-section">
+            <h2 style="margin-bottom: 20px; font-size: 20px;">Статистика</h2>
+            <div class="stats-grid">
+                <div class="stat-card"><div class="stat-icon">🔥</div><div class="stat-value" id="stat-streak">0</div><div class="stat-label">Дней подряд</div></div>
+                <div class="stat-card"><div class="stat-icon">✅</div><div class="stat-value" id="stat-total-completions">0</div><div class="stat-label">Всего выполнено</div></div>
+                <div class="stat-card"><div class="stat-icon">🏆</div><div class="stat-value" id="stat-perfect-days">0</div><div class="stat-label">Идеальных дней</div></div>
+                <div class="stat-card"><div class="stat-icon">📋</div><div class="stat-value" id="stat-total-habits">0</div><div class="stat-label">Активных привычек</div></div>
+            </div>
+        </main>
+
+        <button class="fab" id="fab-add">+</button>
+
+        <nav class="bottom-nav">
+            <div class="nav-item active" data-target="view-habits"><span class="icon">☑️</span><span>Привычки</span></div>
+            <div class="nav-item" data-target="view-calendar"><span class="icon">📅</span><span>Календарь</span></div>
+            <div class="nav-item" data-target="view-stats"><span class="icon">📊</span><span>Статистика</span></div>
+        </nav>
+
+        <div class="modal-overlay" id="habit-modal">
+            <div class="modal-content">
+                <h3>Новая привычка</h3>
+                <div class="input-group"><label>Название</label><input type="text" id="habit-name" placeholder="Например: Пить воду" maxlength="30"></div>
+                <div class="input-group"><label>Цель (раз в день)</label><input type="number" id="habit-target" min="1" value="1"></div>
+                <div class="modal-actions">
+                    <button type="button" class="btn-cancel" id="btn-cancel-habit">Отмена</button>
+                    <button type="button" class="btn-save" id="btn-save-habit">Добавить</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal-overlay" id="settings-modal">
+            <div class="modal-content">
+                <h3>Настройки</h3>
+                <div class="settings-actions">
+                    <button id="btn-export" class="btn-secondary"><span>⬇️</span> Экспорт данных</button>
+                    <button id="btn-import-trigger" class="btn-secondary"><span>⬆️</span> Импорт данных</button>
+                    <input type="file" id="file-import" accept=".db, .json" hidden>
+                </div>
+                <div class="modal-actions" style="margin-top: 20px; flex-direction: column; gap: 10px;">
+                    <button type="button" class="btn-cancel" id="btn-close-settings">Закрыть</button>
+                    <button type="button" class="btn-logout" id="btn-logout">Выйти из аккаунта</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ВСТРОЕННЫЙ СКРИПТ -->
+    <script>
+        let appData = { habits: [], history: {} };
+        let currentUser = null;
+        let currentDate = new Date();
+        let selectedDateStr = new Date().toISOString().split('T')[0];
+        let currentTimeView = 'today'; // 'today', 'weekly', 'monthly'
+
+        document.addEventListener('DOMContentLoaded', () => {
+            
+            // --- 1. АВТОРИЗАЦИЯ ---
+            const users = JSON.parse(localStorage.getItem('app_users')) || {};
+            const session = localStorage.getItem('app_session');
+
+            document.getElementById('tab-login').addEventListener('click', () => {
+                document.getElementById('tab-login').classList.add('active');
+                document.getElementById('tab-register').classList.remove('active');
+                document.getElementById('login-form-box').style.display = 'block';
+                document.getElementById('register-form-box').style.display = 'none';
+                document.getElementById('auth-error').style.display = 'none';
+            });
+
+            document.getElementById('tab-register').addEventListener('click', () => {
+                document.getElementById('tab-register').classList.add('active');
+                document.getElementById('tab-login').classList.remove('active');
+                document.getElementById('register-form-box').style.display = 'block';
+                document.getElementById('login-form-box').style.display = 'none';
+                document.getElementById('auth-error').style.display = 'none';
+            });
+
+            function showError(msg) {
+                const err = document.getElementById('auth-error');
+                err.textContent = msg;
+                err.style.display = 'block';
+            }
+
+            document.getElementById('btn-register').addEventListener('click', () => {
+                const user = document.getElementById('reg-username').value.trim();
+                const pass = document.getElementById('reg-password').value.trim();
+                if (!user || !pass) return showError('Заполните все поля!');
+                if (users[user]) return showError('Этот логин уже занят');
+                users[user] = pass;
+                localStorage.setItem('app_users', JSON.stringify(users));
+                loginSuccess(user);
+            });
+
+            document.getElementById('btn-login').addEventListener('click', () => {
+                const user = document.getElementById('login-username').value.trim();
+                const pass = document.getElementById('login-password').value.trim();
+                if (!user || !pass) return showError('Заполните все поля!');
+                if (users[user] !== pass) return showError('Неверный логин или пароль');
+                loginSuccess(user);
+            });
+
+            document.getElementById('btn-logout').addEventListener('click', () => {
+                localStorage.removeItem('app_session');
+                currentUser = null;
+                document.getElementById('main-app').style.display = 'none';
+                document.getElementById('auth-screen').style.display = 'flex';
+                document.getElementById('settings-modal').classList.remove('show');
+            });
+
+            function loginSuccess(username) {
+                currentUser = username;
+                localStorage.setItem('app_session', username);
+                document.getElementById('user-display-name').textContent = username;
+                document.getElementById('auth-screen').style.display = 'none';
+                document.getElementById('main-app').style.display = 'flex';
+                loadUserData();
+            }
+
+            if (session) loginSuccess(session);
+
+            // --- 2. ДАННЫЕ ---
+            function loadUserData() {
+                appData = { habits: [], history: {} };
+                const key = 'trackerData_' + currentUser;
+                const stored = localStorage.getItem(key);
+                if (stored) {
+                    try {
+                        const parsed = JSON.parse(stored);
+                        if (parsed.habits) appData.habits = parsed.habits;
+                        if (parsed.history) appData.history = parsed.history;
+                    } catch (e) {}
+                }
+                renderHabitsList();
+                renderCalendarUI();
+                renderDayDetails();
+                updateStatsUI();
+            }
+
+            function saveData() {
+                if (!currentUser) return;
+                localStorage.setItem('trackerData_' + currentUser, JSON.stringify(appData));
+            }
+
+            function toggleHabit(hId, dateStr) {
+                if (!appData.history[dateStr]) appData.history[dateStr] = { completed: [] };
+                const completed = appData.history[dateStr].completed;
+                const index = completed.indexOf(hId);
+                if (index > -1) completed.splice(index, 1);
+                else completed.push(hId);
+                saveData();
+            }
+
+            // --- 3. ОТРИСОВКА (Привычки) ---
+            function renderHabitsList() {
+                const list = document.getElementById('habits-list');
+                if (!list) return;
+                list.innerHTML = '';
+                
+                if (appData.habits.length === 0) {
+                    list.innerHTML = '<p style="color: #6c757d; text-align: center; padding: 20px;">Нет привычек. Нажмите "+", чтобы добавить.</p>';
+                    return;
+                }
+
+                const today = new Date();
+                const todayStr = today.toISOString().split('T')[0];
+
+                appData.habits.forEach(habit => {
+                    const card = document.createElement('div');
+                    card.className = 'habit-card';
+                    
+                    let contentHtml = `<div class="habit-header">
+                        <div class="habit-title">${habit.name}</div>
+                        <div class="habit-target">${habit.target > 1 ? 'Цель: ' + habit.target : 'Ежедневно'}</div>
+                    </div>`;
+
+                    if (currentTimeView === 'today') {
+                        const isDone = (appData.history[todayStr]?.completed || []).includes(habit.id);
+                        contentHtml += `
+                            <div class="today-check-row">
+                                <button class="check-btn ${isDone ? 'checked' : ''}" data-id="${habit.id}" data-date="${todayStr}">${isDone ? '✓' : ''}</button>
+                            </div>
+                        `;
+                    } else if (currentTimeView === 'weekly') {
+                        const dayOfWeek = today.getDay() || 7;
+                        const monday = new Date(today);
+                        monday.setDate(today.getDate() - dayOfWeek + 1);
+                        const labels = ['ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ', 'ВС'];
+                        
+                        contentHtml += `<div class="week-grid">`;
+                        for (let i = 0; i < 7; i++) {
+                            const d = new Date(monday);
+                            d.setDate(monday.getDate() + i);
+                            const offset = d.getTimezoneOffset() * 60000;
+                            const dStr = (new Date(d.getTime() - offset)).toISOString().split('T')[0];
+                            const isDone = (appData.history[dStr]?.completed || []).includes(habit.id);
+                            
+                            contentHtml += `
+                                <div class="day-col">
+                                    <span class="day-label">${labels[i]}</span>
+                                    <button class="day-btn ${isDone ? 'done' : ''}" data-id="${habit.id}" data-date="${dStr}">
+                                        ${isDone ? '✓' : ''}
+                                    </button>
+                                </div>
+                            `;
+                        }
+                        contentHtml += `</div>`;
+                    } else if (currentTimeView === 'monthly') {
+                        let completedDays = 0;
+                        for (const date in appData.history) {
+                            if (date.startsWith(`${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`)) {
+                                if (appData.history[date].completed.includes(habit.id)) completedDays++;
+                            }
+                        }
+                        contentHtml += `
+                            <div style="margin-top: 15px; font-size: 14px; color: #8b5cf6; font-weight: 600; display: flex; align-items: center; gap: 8px;">
+                                <span style="font-size: 20px;">📅</span> Выполнено в этом месяце: ${completedDays} дн.
+                            </div>
+                        `;
+                    }
+
+                    card.innerHTML = contentHtml;
+                    list.appendChild(card);
+                });
+
+                // Обработчики
+                if (currentTimeView === 'today') {
+                    document.querySelectorAll('.today-check-row .check-btn').forEach(btn => {
+                        btn.addEventListener('click', (e) => {
+                            toggleHabit(e.currentTarget.getAttribute('data-id'), e.currentTarget.getAttribute('data-date'));
+                            renderHabitsList();
+                            updateStatsUI();
+                        });
+                    });
+                } else if (currentTimeView === 'weekly') {
+                    document.querySelectorAll('.week-grid .day-btn').forEach(btn => {
+                        btn.addEventListener('click', (e) => {
+                            toggleHabit(e.currentTarget.getAttribute('data-id'), e.currentTarget.getAttribute('data-date'));
+                            renderHabitsList();
+                            updateStatsUI();
+                        });
+                    });
+                }
+            }
+
+            // --- 4. КАЛЕНДАРЬ ---
+            function renderCalendarUI() {
+                const grid = document.getElementById('calendar-grid');
+                const display = document.getElementById('month-year-display');
+                if (!grid) return;
+
+                const year = currentDate.getFullYear();
+                const month = currentDate.getMonth();
+                const monthNames = ["Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"];
+                display.textContent = `${monthNames[month]} ${year}`;
+                grid.innerHTML = '';
+
+                let firstDay = new Date(year, month, 1).getDay();
+                firstDay = firstDay === 0 ? 6 : firstDay - 1;
+                const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+                for (let i = 0; i < firstDay; i++) grid.innerHTML += `<div class="cal-day empty"></div>`;
+
+                for (let day = 1; day <= daysInMonth; day++) {
+                    const d = new Date(year, month, day);
+                    const offset = d.getTimezoneOffset() * 60000;
+                    const dateStr = (new Date(d.getTime() - offset)).toISOString().split('T')[0];
+
+                    let classes = 'cal-day';
+                    if (appData.history[dateStr] && appData.history[dateStr].completed.length > 0) classes += ' has-completed';
+                    if (dateStr === selectedDateStr) classes += ' selected';
+
+                    const dayDiv = document.createElement('div');
+                    dayDiv.className = classes;
+                    dayDiv.textContent = day;
+                    dayDiv.addEventListener('click', () => {
+                        selectedDateStr = dateStr;
+                        renderCalendarUI();
+                        renderDayDetails();
+                    });
+                    grid.appendChild(dayDiv);
+                }
+            }
+
+            function renderDayDetails() {
+                const title = document.getElementById('selected-date-title');
+                const list = document.getElementById('day-habits-list');
+                if (!list || !title) return;
+
+                const [y, m, d] = selectedDateStr.split('-');
+                title.textContent = `Привычки на ${d}.${m}.${y}`;
+                list.innerHTML = '';
+                const dayData = appData.history[selectedDateStr] || { completed: [] };
+
+                if (appData.habits.length === 0) {
+                    list.innerHTML = '<p style="color: #6c757d; font-size: 14px;">Добавьте привычки на главной.</p>';
+                    return;
+                }
+
+                appData.habits.forEach(habit => {
+                    const isDone = dayData.completed.includes(habit.id);
+                    const row = document.createElement('div');
+                    row.className = 'day-habit-row';
+                    row.innerHTML = `
+                        <span class="day-habit-name">${habit.name}</span>
+                        <button class="check-btn ${isDone ? 'checked' : ''}" data-id="${habit.id}">${isDone ? '✓' : ''}</button>
+                    `;
+
+                    row.querySelector('.check-btn').addEventListener('click', (e) => {
+                        toggleHabit(e.currentTarget.getAttribute('data-id'), selectedDateStr);
+                        renderCalendarUI();
+                        renderDayDetails();
+                        updateStatsUI();
+                    });
+                    list.appendChild(row);
+                });
+            }
+
+            // --- 5. СТАТИСТИКА ---
+            function updateStatsUI() {
+                let totalCompletions = 0;
+                for (const date in appData.history) totalCompletions += appData.history[date].completed.length;
+                document.getElementById('stat-total-completions').textContent = totalCompletions;
+                document.getElementById('stat-total-habits').textContent = appData.habits.length;
+
+                let streak = 0;
+                let checkDate = new Date();
+                while (true) {
+                    const offset = checkDate.getTimezoneOffset() * 60000;
+                    const dStr = (new Date(checkDate.getTime() - offset)).toISOString().split('T')[0];
+                    if (appData.history[dStr] && appData.history[dStr].completed.length > 0) {
+                        streak++;
+                        checkDate.setDate(checkDate.getDate() - 1);
+                    } else {
+                        if (streak === 0 && dStr === new Date().toISOString().split('T')[0]) {
+                            checkDate.setDate(checkDate.getDate() - 1);
+                            const yStr = (new Date(checkDate.getTime() - offset)).toISOString().split('T')[0];
+                            if (appData.history[yStr] && appData.history[yStr].completed.length > 0) continue;
+                        }
+                        break;
+                    }
+                }
+                document.getElementById('stat-streak').textContent = streak;
+
+                let perfectDays = 0;
+                const totalHabits = appData.habits.length;
+                if (totalHabits > 0) {
+                    for (const date in appData.history) {
+                        if (appData.history[date].completed.length >= totalHabits) perfectDays++;
+                    }
+                }
+                document.getElementById('stat-perfect-days').textContent = perfectDays;
+            }
+
+            // --- 6. ОБРАБОТЧИКИ ---
+            
+            // Верхние табы
+            document.querySelectorAll('.tabs .tab').forEach(tab => {
+                tab.addEventListener('click', () => {
+                    document.querySelectorAll('.tabs .tab').forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+                    currentTimeView = tab.getAttribute('data-time');
+                    renderHabitsList();
+                });
+            });
+
+            // Нижние вкладки
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+                    document.querySelectorAll('.view-section').forEach(v => v.classList.remove('active'));
+                    item.classList.add('active');
+                    document.getElementById(item.getAttribute('data-target')).classList.add('active');
+                    
+                    if (item.getAttribute('data-target') === 'view-stats') updateStatsUI();
+                    if (item.getAttribute('data-target') === 'view-calendar') renderCalendarUI();
+                });
+            });
+
+            // Модалки и кнопки
+            const habitModal = document.getElementById('habit-modal');
+            document.getElementById('fab-add').addEventListener('click', () => habitModal.classList.add('show'));
+            document.getElementById('btn-cancel-habit').addEventListener('click', () => habitModal.classList.remove('show'));
+            document.getElementById('btn-close-settings').addEventListener('click', () => document.getElementById('settings-modal').classList.remove('show'));
+            document.getElementById('btn-settings').addEventListener('click', () => document.getElementById('settings-modal').classList.add('show'));
+
+            document.getElementById('btn-save-habit').addEventListener('click', () => {
+                const name = document.getElementById('habit-name').value.trim();
+                const target = parseInt(document.getElementById('habit-target').value) || 1;
+                if (!name) return alert('Введите название!');
+                appData.habits.push({ id: 'habit_' + Date.now(), name, target });
+                saveData();
+                renderHabitsList();
+                renderDayDetails();
+                updateStatsUI();
+                habitModal.classList.remove('show');
+                document.getElementById('habit-name').value = '';
+            });
+
+            document.getElementById('prev-month').addEventListener('click', () => { currentDate.setMonth(currentDate.getMonth() - 1); renderCalendarUI(); });
+            document.getElementById('next-month').addEventListener('click', () => { currentDate.setMonth(currentDate.getMonth() + 1); renderCalendarUI(); });
+            
+            // Экспорт / Импорт
+            document.getElementById('btn-export').addEventListener('click', () => {
+                const blob = new Blob([JSON.stringify(appData)], { type: 'application/octet-stream' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url; a.download = 'tracker_backup.db'; a.click();
+            });
+
+            document.getElementById('btn-import-trigger').addEventListener('click', () => {
+                document.getElementById('file-import').click();
+            });
+
+            document.getElementById('file-import').addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    try {
+                        const parsed = JSON.parse(event.target.result);
+                        if (parsed.habits) {
+                            appData = parsed;
+                            saveData();
+                            renderHabitsList();
+                            renderCalendarUI();
+                            renderDayDetails();
+                            updateStatsUI();
+                            alert('Данные успешно загружены!');
+                            document.getElementById('settings-modal').classList.remove('show');
+                        }
+                    } catch (err) { alert('Ошибка чтения файла'); }
+                };
+                reader.readAsText(file);
+            });
+        });
+    </script>
+</body>
+</html>
